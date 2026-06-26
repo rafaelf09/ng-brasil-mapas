@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Densidade de Descargas Atmosféricas (Ng) — Brasil</title>
+<script src="https://cdn.plot.ly/plotly-3.6.0.min.js" charset="utf-8"></script>
+<style>
+  :root{
+    --bg:#0a0e17;
+    --panel:#11182a;
+    --line:#2a3650;
+    --text:#f5f7fb;
+    --text-dim:#aab4cc;
+    --accent:#ffcc4d;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; font-family:-apple-system, sans-serif;}
+  body{background:var(--bg); color:var(--text); height:100vh; overflow:hidden;}
+
+  #app{display:grid; grid-template-columns: 360px 1fr; height:100vh;}
+
+  #panel{
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    padding:24px;
+    overflow-y:auto;
+  }
+
+  h1{font-size:22px; margin-bottom:6px;}
+  .subtitle{font-size:13px; color:var(--text-dim); margin-bottom:24px; line-height:1.5;}
+
+  label{display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; text-transform:uppercase;}
+  select{
+    width:100%; background:#1a2332; border:1px solid var(--line);
+    color:var(--text); padding:10px; border-radius:6px; margin-bottom:18px;
+    font-size:14px;
+  }
+
+  #stat-box{
+    background:#1a2332; border:1px solid var(--line); border-radius:8px;
+    padding:16px; margin-top:10px;
+  }
+  #stat-box.hidden{display:none;}
+
+  .ng-principal{font-size:36px; font-weight:700; color:var(--accent);}
+  .ng-principal .unidade{font-size:13px; color:var(--text-dim); font-weight:400;}
+  .ng-fonte{font-size:11px; color:var(--text-dim); margin-top:2px; margin-bottom:14px;}
+  .ng-historico{font-size:13px; color:var(--text-dim); border-top:1px solid var(--line); padding-top:10px; margin-top:6px;}
+
+  #aviso{
+    font-size:11px; color:var(--text-dim); line-height:1.5;
+    margin-top:24px; padding-top:16px; border-top:1px solid var(--line);
+  }
+
+  #map-col{position:relative;}
+  #map{width:100%; height:100%;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <aside id="panel">
+    <h1>Densidade de Descargas Atmosféricas</h1>
+    <p class="subtitle">Consulta do índice Ng por município, conforme NBR 5419-2:2026 (Anexo F), para uso em projetos de SPDA e aterramento.</p>
+
+    <label for="sel-uf">Estado</label>
+    <select id="sel-uf">
+      <option value="BR">Brasil (todos os estados)</option>
+    </select>
+
+    <label for="sel-mun">Município</label>
+    <select id="sel-mun" disabled>
+      <option value="">Selecione um estado primeiro</option>
+    </select>
+
+    <div id="stat-box" class="hidden">
+      <div class="ng-principal"><span id="ng-valor">—</span><span class="unidade"> raios/km²/ano</span></div>
+      <div class="ng-fonte">Ng — NBR 5419-2:2026 (Anexo F)</div>
+    </div>
+
+    <div id="aviso">
+      <b>Nota técnica:</b> os valores de Ng aqui exibidos são uma ferramenta de referência rápida derivada de dados públicos do INPE. Para uso formal em laudo técnico ou projeto de SPDA, confirme o valor diretamente no Anexo F da NBR 5419-2:2026 vigente.
+    </div>
+  </aside>
+
+  <main id="map-col">
+    <div id="map"></div>
+  </main>
+</div>
+
+<script>
+let GEOJSON, NG_DADOS, UF_LISTA, UF_BOUNDS;
+
+async function carregarDados() {
+  try {
+    const [geojson, dados, ufLista, bounds] = await Promise.all([
+      fetch("municipios.geojson").then(r => r.json()),
+      fetch("ng_dados.json").then(r => r.json()),
+      fetch("uf_lista.json").then(r => r.json()),
+      fetch("uf_bounds.json").then(r => r.json()),
+    ]);
+    GEOJSON = geojson;
+    NG_DADOS = dados;
+    UF_LISTA = ufLista;
+    UF_BOUNDS = bounds;
+
+    console.log("Dados carregados:", GEOJSON.features.length, "municípios");
+    popularSelectUf();
+  } catch (erro) {
+    console.error("ERRO ao carregar dados:", erro);
+  }
+}
+
+function popularSelectUf() {
+  const sel = document.getElementById("sel-uf");
+  UF_LISTA.forEach(uf => {
+    const opt = document.createElement("option");
+    opt.value = uf.sigla;
+    opt.textContent = uf.nome;
+    sel.appendChild(opt);
+  });
+}
+
+// Dado o código do estado (ex: "SP"), retorna a lista de [codigo, dados]
+// de todos os municípios daquele estado, ordenada por nome.
+function municipiosDoEstado(siglaUf) {
+  return Object.entries(NG_DADOS)
+    .filter(([cod, info]) => info.SIGLA_UF === siglaUf)
+    .sort((a, b) => a[1].NM_MUN.localeCompare(b[1].NM_MUN));
+}
+
+function popularSelectMunicipio(siglaUf) {
+  const selMun = document.getElementById("sel-mun");
+  if (siglaUf === "BR") {
+    selMun.innerHTML = '<option value="">Selecione um estado primeiro</option>';
+    selMun.disabled = true;
+    return;
+  }
+  const lista = municipiosDoEstado(siglaUf);
+  selMun.innerHTML = '<option value="">Todos os municípios do estado</option>';
+  lista.forEach(([cod, info]) => {
+    const opt = document.createElement("option");
+    opt.value = cod;
+    opt.textContent = info.NM_MUN;
+    selMun.appendChild(opt);
+  });
+  selMun.disabled = false;
+}
+
+// Constrói o mapa Plotly para um conjunto de códigos de município.
+// "escopo" é só usado para ajustar o zoom (bounding box).
+let mapaJaExiste = false;
+
+function desenharMapa(escopo) {
+  const codigos = escopo === "BR"
+    ? Object.keys(NG_DADOS)
+    : municipiosDoEstado(escopo).map(([cod, info]) => cod);
+
+  const valores = codigos.map(c => NG_DADOS[c].ng_nbr5419_2026);
+
+  // Texto customizado do tooltip: nome do município, UF e o Ng --
+  // sem isso, o Plotly mostraria o código IBGE (pouco legível).
+  const textosTooltip = codigos.map(c => {
+    const info = NG_DADOS[c];
+    return `${info.NM_MUN} — ${info.SIGLA_UF}<br>Ng: ${info.ng_nbr5419_2026} raios/km²/ano`;
+  });
+
+  const trace = {
+    type: "choropleth",
+    geojson: GEOJSON,
+    locations: codigos,
+    z: valores,
+    text: textosTooltip,
+    hoverinfo: "text",
+    colorscale: "YlOrRd",
+    marker: { line: { width: 0.3, color: "rgba(10,14,23,0.6)" } },
+    colorbar: { title: "Ng (raios/km²/ano)" },
+  };
+
+
+  const bounds = UF_BOUNDS[escopo] || UF_BOUNDS["BR"];
+  const layout = {
+    geo: {
+      visible: false,
+      projection: { type: "mercator" },
+      lonaxis: { range: [bounds[0] - 0.3, bounds[2] + 0.3] },
+      lataxis: { range: [bounds[1] - 0.3, bounds[3] + 0.3] },
+      bgcolor: "rgba(0,0,0,0)",
+    },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    margin: { t: 0, b: 0, l: 0, r: 0 },
+    font: { color: "#f5f7fb" },
+  };
+
+  if (!mapaJaExiste) {
+    Plotly.newPlot("map", [trace], layout, { displayModeBar: false, responsive: true });
+    mapaJaExiste = true;
+  } else {
+    Plotly.react("map", [trace], layout, { displayModeBar: false, responsive: true });
+  }
+}
+
+
+// Mostra os dados de Ng do município selecionado no painel lateral
+function mostrarEstatisticas(codigoMunicipio) {
+  const statBox = document.getElementById("stat-box");
+
+  if (!codigoMunicipio) {
+    statBox.classList.add("hidden");
+    return;
+  }
+
+  const info = NG_DADOS[codigoMunicipio];
+  if (!info) {
+    console.warn("Município não encontrado nos dados:", codigoMunicipio);
+    return;
+  }
+
+  document.getElementById("ng-valor").textContent = info.ng_nbr5419_2026;
+
+  statBox.classList.remove("hidden");
+}
+
+// ---------- Eventos ----------
+document.getElementById("sel-uf").addEventListener("change", (e) => {
+  const uf = e.target.value;
+  popularSelectMunicipio(uf);
+  desenharMapa(uf);
+  mostrarEstatisticas(null); // esconde o painel ao trocar de estado
+});
+
+document.getElementById("sel-mun").addEventListener("change", (e) => {
+  mostrarEstatisticas(e.target.value);
+});
+
+window.addEventListener("load", () => {
+  console.log("Plotly disponível?", typeof Plotly);
+  carregarDados().then(() => {
+    desenharMapa("BR");
+  });
+});
+
+</script>
+
+</body>
+</html>

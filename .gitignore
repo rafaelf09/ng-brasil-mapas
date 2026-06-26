@@ -1,0 +1,17 @@
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+.ipynb_checkpoints/
+
+# Dados brutos de terceiros (baixar seguindo o README)
+data/raw/
+
+# Intermediários pesados do pipeline (regeneráveis rodando os scripts)
+data/processed/ng_por_municipio.gpkg
+data/processed/ng_por_municipio_final.gpkg
+data/processed/pontos_ng.gpkg
+data/processed/pontos_com_municipio.gpkg
+
+# Teste descartável
+output/mapa_basico.html
