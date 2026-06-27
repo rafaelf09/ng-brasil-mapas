@@ -59,6 +59,36 @@
 
   #map-col{position:relative;}
   #map{width:100%; height:100%;}
+
+
+@media (max-width: 768px) {
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+
+  #panel {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 16px;
+    max-height: 45vh;
+  }
+
+  h1 {
+    font-size: 18px;
+  }
+
+  .subtitle {
+    margin-bottom: 14px;
+  }
+
+  #map-col {
+    min-height: 0;
+  }
+}
+
+
 </style>
 </head>
 <body>
