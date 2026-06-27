@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Densidade de Descargas Atmosféricas (Ng) — Brasil</title>
+<title>Ng por Município — Densidade de Descargas Atmosféricas | NBR 5419-2:2026</title>
+<meta name="description" content="Consulte gratuitamente o índice Ng (densidade de descargas atmosféricas) de qualquer município do Brasil, conforme o Anexo F da NBR 5419-2:2026, para uso em projetos de SPDA e aterramento.">
+<meta name="keywords" content="Ng, densidade de descargas atmosféricas, NBR 5419, SPDA, aterramento, para-raios, raios por km2">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://rafaelf09.github.io/ng-brasil-mapas/">
 <script src="https://cdn.plot.ly/plotly-3.6.0.min.js" charset="utf-8"></script>
 <style>
   :root{
@@ -60,7 +64,7 @@
 
 <div id="app">
   <aside id="panel">
-    <h1>Densidade de Descargas Atmosféricas</h1>
+    <h1>Ng — Densidade de Descargas Atmosféricas por Município (NBR 5419-2:2026)</h1>
     <p class="subtitle">Consulta do índice Ng por município, conforme NBR 5419-2:2026 (Anexo F), para uso em projetos de SPDA e aterramento.</p>
 
     <label for="sel-uf">Estado</label>
@@ -72,10 +76,14 @@
     <select id="sel-mun" disabled>
       <option value="">Selecione um estado primeiro</option>
     </select>
-
+    
     <div id="stat-box" class="hidden">
-      <div class="ng-principal"><span id="ng-valor">—</span><span class="unidade"> raios/km²/ano</span></div>
-      <div class="ng-fonte">Ng — NBR 5419-2:2026 (Anexo F)</div>
+     <div class="ng-principal"><span id="ng-valor">—</span><span class="unidade"> raios/km²/ano</span></div>
+     <div class="ng-fonte">Ng — NBR 5419-2:2026 (Anexo F)</div>
+     <div class="ng-historico">
+       Referência histórica (mapa LIS/TRMM 1988–2011, base da NBR 5419:2015):<br>
+       máximo <span id="ng-2015-max">—</span> · médio <span id="ng-2015-medio">—</span>
+     </div>
     </div>
 
     <div id="aviso">
@@ -217,6 +225,8 @@ function mostrarEstatisticas(codigoMunicipio) {
   }
 
   document.getElementById("ng-valor").textContent = info.ng_nbr5419_2026;
+  document.getElementById("ng-2015-max").textContent = info.ng_2015_max;
+  document.getElementById("ng-2015-medio").textContent = info.ng_2015_medio;
 
   statBox.classList.remove("hidden");
 }
