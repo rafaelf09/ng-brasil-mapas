@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://rafaelf09.github.io/ng-brasil-mapas/sitemap.xml
