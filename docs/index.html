@@ -192,19 +192,29 @@ const trace = {
   colorbar: { title: "Ng (raios/km²/ano)" },
 };
 
-  const bounds = UF_BOUNDS[escopo] || UF_BOUNDS["BR"];
-  const layout = {
-    geo: {
-      visible: false,
-      projection: { type: "mercator" },
-      lonaxis: { range: [bounds[0] - 0.3, bounds[2] + 0.3] },
-      lataxis: { range: [bounds[1] - 0.3, bounds[3] + 0.3] },
-      bgcolor: "rgba(0,0,0,0)",
-    },
-    paper_bgcolor: "rgba(0,0,0,0)",
-    margin: { t: 0, b: 0, l: 0, r: 0 },
-    font: { color: "#f5f7fb" },
-  };
+ const bounds = UF_BOUNDS[escopo] || UF_BOUNDS["BR"];
+const lonSpan = bounds[2] - bounds[0];
+const latSpan = bounds[3] - bounds[1];
+
+// Estados "finos" (proporção entre largura e altura muito desigual)
+// ficam com um scale extra para compensar o espaço vazio que o
+// fitbounds automático deixa ao redor. Quanto mais "fino" o estado,
+// maior o fator de compensação.
+const proporcao = Math.max(lonSpan, latSpan) / Math.max(Math.min(lonSpan, latSpan), 0.1);
+const scaleExtra = escopo === "BR" ? 1 : Math.min(1 + (proporcao - 1) * 0.18, 2.2);
+
+const layout = {
+  geo: {
+    visible: false,
+    projection: { type: "mercator", scale: scaleExtra },
+    fitbounds: "locations",
+    bgcolor: "rgba(0,0,0,0)",
+  },
+  paper_bgcolor: "rgba(0,0,0,0)",
+  margin: { t: 0, b: 0, l: 0, r: 0 },
+  font: { color: "#f5f7fb" },
+};
+
 
   if (!mapaJaExiste) {
     Plotly.newPlot("map", [trace], layout, { displayModeBar: false, responsive: true });
