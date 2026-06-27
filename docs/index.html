@@ -174,18 +174,23 @@ function desenharMapa(escopo) {
     return `${info.NM_MUN} — ${info.SIGLA_UF}<br>Ng: ${info.ng_nbr5419_2026} raios/km²/ano`;
   });
 
-  const trace = {
-    type: "choropleth",
-    geojson: GEOJSON,
-    locations: codigos,
-    z: valores,
-    text: textosTooltip,
-    hoverinfo: "text",
-    colorscale: "YlOrRd",
-    marker: { line: { width: 0.3, color: "rgba(10,14,23,0.6)" } },
-    colorbar: { title: "Ng (raios/km²/ano)" },
-  };
-
+const trace = {
+  type: "choropleth",
+  geojson: GEOJSON,
+  locations: codigos,
+  z: valores,
+  text: textosTooltip,
+  hoverinfo: "text",
+ colorscale: [
+   [0.0, "#3a2d8f"],
+   [0.25, "#5840c4"],
+   [0.5, "#7d5cff"],
+   [0.75, "#b8a8ff"],
+   [1.0, "#fff6d9"],
+ ],
+  marker: { line: { width: 0.3, color: "rgba(10,14,23,0.6)" } },
+  colorbar: { title: "Ng (raios/km²/ano)" },
+};
 
   const bounds = UF_BOUNDS[escopo] || UF_BOUNDS["BR"];
   const layout = {
@@ -232,16 +237,56 @@ function mostrarEstatisticas(codigoMunicipio) {
   statBox.classList.remove("hidden");
 }
 
+
+
+
+
+// Adiciona um contorno destacado sobre o município selecionado, sem
+// redesenhar o mapa inteiro -- usa Plotly.addTraces / Plotly.deleteTraces
+// para sobrepor só a borda do município escolhido.
+let traceDestaqueExiste = false;
+
+function destacarMunicipio(codigoMunicipio) {
+  // Remove o destaque anterior, se existir
+  if (traceDestaqueExiste) {
+    Plotly.deleteTraces("map", -1);
+    traceDestaqueExiste = false;
+  }
+
+  if (!codigoMunicipio) return;
+
+  const traceDestaque = {
+    type: "choropleth",
+    geojson: GEOJSON,
+    locations: [codigoMunicipio],
+    z: [1],
+    showscale: false,
+    colorscale: [[0, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0)"]], // preenchimento invisível
+    marker: { line: { width: 3, color: "#ffcc4d" } }, // só a borda em destaque
+    hoverinfo: "skip",
+  };
+
+  Plotly.addTraces("map", traceDestaque);
+  traceDestaqueExiste = true;
+}
+
+
+
+
+
 // ---------- Eventos ----------
+
 document.getElementById("sel-uf").addEventListener("change", (e) => {
   const uf = e.target.value;
   popularSelectMunicipio(uf);
   desenharMapa(uf);
-  mostrarEstatisticas(null); // esconde o painel ao trocar de estado
+  mostrarEstatisticas(null);
+  traceDestaqueExiste = false; // o redesenho do mapa já limpa qualquer trace extra
 });
 
-document.getElementById("sel-mun").addEventListener("change", (e) => {
-  mostrarEstatisticas(e.target.value);
+  document.getElementById("sel-mun").addEventListener("change", (e) => {
+   mostrarEstatisticas(e.target.value);
+   destacarMunicipio(e.target.value);
 });
 
 window.addEventListener("load", () => {
