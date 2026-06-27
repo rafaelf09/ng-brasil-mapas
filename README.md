@@ -1,5 +1,5 @@
 # Densidade de Descargas Atmosféricas (Ng) por Município — Brasil
-
+![Screenshot do app](docs/screenshot-app.png)
 Ferramenta de consulta geoespacial do índice **Ng** (densidade de descargas atmosféricas, raios/km²/ano) por município brasileiro, voltada para uso em projetos de **SPDA** (Sistema de Proteção contra Descargas Atmosféricas) e aterramento, conforme a **NBR 5419-2:2026** (vigente).
 
 O projeto nasceu da vontade de facilitar o acesso público a esse dado — hoje disperso em tabelas extensas e mapas pouco interativos — para técnicos, engenheiros e qualquer pessoa interessada no assunto, através de um mapa simples e gratuito de consulta.
